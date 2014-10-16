@@ -3,14 +3,9 @@ var express = require('express');
 var mbaasExpress = mbaasApi.mbaasExpress();
 var cors = require('cors');
 
-// Cluster related
-var cluster = require('cluster');
-var workers = [];     // Array of Worker processes
-var workerId = process.env.NODE_WORKER_ID || 0;
-var server;
-
 // Securable endpoints: list the endpoints which you want to make securable here
 var securableEndpoints = ['hello'];
+
 var app = express();
 
 // Enable CORS for all requests
@@ -23,81 +18,43 @@ app.use('/mbaas', mbaasExpress.mbaas);
 // Note: important that this is added just before your own Routes
 app.use(mbaasExpress.fhmiddleware());
 
-app.use('/hello', require('./lib/hello.js')());
+app.use('/', require('./lib/hello.js')());
 
-// You can define custom URL handlers here, like this one:
-app.use('/', function(req, res){
-  res.end('Your Cloud App is Running');
-});
+app.use('/cloud/picture', require('./lib/picture.js')());
+
+app.use(express.static(__dirname + '/files'));
 
 // Important that this is last!
 app.use(mbaasExpress.errorHandler());
 
-// Start a worker process
-function startWorker() {
-  var port = process.env.FH_PORT || process.env.VCAP_APP_PORT || 8001;
-  server = app.listen(port, function(){
-    console.log("App started at: " + new Date() + " on port: " + port);
-  });
-};
-
-// Start function
-// The number of workers to start can be specified with the FH_NUM_WORKERS env variable
-function start() {
-  if (cluster.isMaster) {
-    var numCPUs = process.env.FH_NUM_WORKERS || require('os').cpus().length;
-    for (var i = 0; i < numCPUs; i++) {
-      var worker = cluster.fork();
-      workers.push(worker);
-    }
-
-    // Handle workers exiting
-    cluster.on('exit', workerExitHandler);
-  } else {
-    startWorker();
-  }
-};
-
-// Clean shutdown..
-var cleanShutdown = function(cb) {
-  if (cluster.isMaster) {
-    // shutdown all our workers - we exit when all workers have exited..
-    for (var i = 0; i < workers.length; i++) {
-      var worker = workers[i];
-      if (worker.destroy) worker.destroy();
-      else if (worker.kill) worker.kill();
-      else if (worker.process && worker.process.kill) worker.process.kill();
-    }
-  }
-
-  // cleanly stop express
-  if (server) {
-    server.close(function() {
-      process.exit(0);
-    });
-  }
-};
-
-// Signal handlers for cleanly shutting down
-process.on('SIGTERM', cleanShutdown);
-process.on('SIGHUP', cleanShutdown);
+var port = process.env.FH_PORT || process.env.VCAP_APP_PORT || 8001;
+var server = app.listen(port, function() {
+  console.log("App started at: " + new Date() + " on port: " + port);
+});
 
 
-// Utility function: handle workers exiting (which can happen cleanly or due to an error)
-function workerExitHandler(worker, code, signal) {
-  if (worker.suicide === true) {
-    console.log("Cleanly exiting..");
-    process.exit(0);
-  } else {
-    var msg = "Worker: " + worker.process.pid + " has died!! Respawning..";
-    console.error(msg);
-    var newWorker = cluster.fork();
-    for (var i = 0; i < workers.length; i++) {
-      if (workers[i] && workers[i].id === worker.id) workers.splice(i);
-    }
-    workers.push(newWorker);
-  }
-};
+/*
+ Inserts an object (document) into a collection in MongoDB
+ @param params.insert an object to insert into your database
+ @param params.collection the collection to insert it into
+ */
+// exports.mongodb = function(params, cb){
+//   var MongoClient = require('mongodb').MongoClient,
+//           format = require('util').format,
+//           user = process.env.MONGODB_USER,
+//           password = process.env.MONGODB_PASSWORD,
+//           upString = (typeof user === 'string' && typeof password === 'string') ? user + ":" + password : "",
+//           database = process.env.MONGODB_DATABASE,
+//           host = process.env.MONGODB_HOST;
 
-// start our app
-start();
+//   MongoClient.connect('mongodb://' + upString + '@' + host + '/' + database, function(err, db) {
+//     if(err) return cb(err);
+
+//     var collection = db.collection(params.collection);
+//     collection.insert(params.insert, function(err, docs) {
+//       db.close();
+//       return cb(null, docs);
+//     });
+//   })
+
+// };

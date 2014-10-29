@@ -7,7 +7,6 @@
     "body-parser": "~1.0.2",
     "express": "~4.0.0",
     "cors": "~2.2.0",
-    "unifiedpush-node-sender": "^0.7.0",
     "connect-busboy": "0.0.2",
     "busboy": "^0.2.9",
     "util": "^0.10.3",

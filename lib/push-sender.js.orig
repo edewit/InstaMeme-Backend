@@ -1,0 +1,31 @@
+module.exports = {
+  send: function (url, fn) {
+<<<<<<< HEAD
+
+    message.url = url;
+    settings.simplePush = 'version=' + new Date().getTime();
+    sender.Sender(settings.serverUrl).send(message, settings, function(err) {
+      if (err) {
+        return fn(err);
+=======
+    $fh.service(
+      {
+        guid: process.env.AEROGEAR_SERVICE_GUID,
+        endpoint: "/send",
+        params: {
+          message : {
+            alert: "New Picture Uploaded",
+            url: url
+          }
+        }
+      },
+      function(err, data) {
+        if (err) {
+          return fn(err);
+        }
+        return fn(null, 'ok');
+>>>>>>> aerogear-service
+      }
+    );
+  }
+};
